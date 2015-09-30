@@ -1,0 +1,272 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Canvas Animation Template</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /*get rid of the ugly scroll bar*/
+        }
+
+        #mySound {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    </style>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script type='text/javascript' src='tinycolor.js'></script>
+    <script type='text/javascript' src='spectrumColors.js'></script>
+    <script>
+        // requestAnim shim layer by Paul Irish
+        window.requestAnimFrame = (function ()
+        {
+            return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+            function (callback, element)
+            {
+                window.setTimeout(callback, 1000 / 60);
+            };
+        })();
+    </script>
+
+    <script type="text/javascript">
+
+        //your code goes here
+        $(document).ready(function (e)
+        {
+
+            var $canvas = $('#myCanvas');
+            var context = $canvas.get(0).getContext('2d');
+
+            //is the sound on or off?
+            var audioOn = false;
+
+            $canvas.css('background-color', '#222');
+
+            function resizeCanvas()
+            {
+                $canvas.attr('width', $(window).width()).attr('height', $(window).height());
+            }
+
+            // initial resize when the page has loaded
+            resizeCanvas();
+            var audioAnalyzer = initializeAudio("mySound");
+
+            var cW = $canvas.width();
+            var cH = $canvas.height();
+
+            var cSpec;
+            var cTime;
+            var steps = 5;
+            var levelsArray = [];
+            var timeArray = [];
+
+            for (i = 0; i < steps; i++)
+            {
+                levelsArray.push(new Array);
+                timeArray.push(new Array);
+            }
+
+            var left, right, up, down, x;
+
+            animate();
+
+            function animate()
+            {
+
+                requestAnimFrame(animate);
+                update();
+                //draw();
+            }
+
+            function update()
+            {
+
+                if (audioOn)
+                {
+                    cTime = document.getElementById("mySound").currentTime;
+                    cSpec = analyzeAudio(audioAnalyzer, steps);
+
+                    for (i = 0; i < cSpec.length; i++)
+                    {
+                        var x = cW / (mySound.duration) * cTime;
+                        var y = cH - cSpec[i];
+                        levelsArray[i].push(y);
+                        timeArray[i].push(x);
+
+                        context.clearRect(x + 1, 0, cW, cH);
+                        if (i > 0)
+                        {
+                            var gradient = context.createLinearGradient(x, levelsArray[i][levelsArray[i].length - 1], x, levelsArray[i - 1][levelsArray[i - 1].length - 1]);
+                            gradient.addColorStop(0, spectrumColors(steps - (i + 1), steps));
+                            gradient.addColorStop(1, spectrumColors(steps - i, steps));
+                            context.fillStyle = gradient;
+                            context.beginPath();
+                            context.moveTo(timeArray[0][timeArray[0].length - 2], levelsArray[i - 1][levelsArray[i - 1].length - 2])
+                            context.lineTo(timeArray[0][timeArray[0].length - 2], levelsArray[i][levelsArray[i].length - 2]);
+                            context.strokeStyle = spectrumColors(steps - (i + 1), steps);
+
+                            context.lineTo(x, levelsArray[i][levelsArray[i].length - 1]);
+                            context.lineTo(x, levelsArray[i - 1][levelsArray[i - 1].length - 1]);
+                            context.stroke();
+                            context.fill();
+                        }
+                        else
+                        {
+                            context.beginPath();
+                            context.moveTo(timeArray[0][timeArray[0].length - 2], levelsArray[i][levelsArray[i].length - 2]);
+                            context.strokeStyle = spectrumColors(steps - (i + 1), steps);
+
+                            context.lineTo(x, levelsArray[i][levelsArray[i].length - 1]);
+                            context.stroke();
+                        }
+                        
+                    }
+                }
+            }
+
+            function draw()
+            {
+            }
+
+
+
+            //audio stuff//
+            function initializeAudio(id)
+            {
+                //get audio element from the html - use the DOM api not the jquery
+                audioElement = document.getElementById(id);
+
+                //Create new Audio Context
+                audioContext = new AudioContext();
+
+                //create a new audio analyser from the audio context
+                analyzer = audioContext.createAnalyser();
+
+                //once all the content - the sound file - is loaded
+                //then connect the audio analyzer
+                $(window).load(function (e)
+                {
+                    connectAnalyzer(audioElement, audioContext, analyzer);
+
+                });
+
+                return analyzer;
+
+            }
+
+            function connectAnalyzer(audioElement, audioContext, analyzer)
+            {
+
+                //create a source node from the audio element
+                var source_node = audioContext.createMediaElementSource(audioElement);
+                //connect the source node to the analyzer
+                source_node.connect(analyzer);
+                //connect the analyzer to the destination, i.e. speaker
+                analyzer.connect(audioContext.destination);
+
+                //add an event listener to the audio element
+                //when it's being played, call the function that analyzes the music
+                //audioElement.addEventListener('play', startAnalyzer);
+                $(audioElement).on('play', function ()
+                {
+                    startAnalyzer();
+                });
+
+                $(audioElement).on('pause', function ()
+                {
+                    stopAnalyzer();
+
+                });
+
+                console.log("audio analyzer connected");
+            }
+
+            function startAnalyzer()
+            {
+
+                audioOn = true;
+            }
+
+            function stopAnalyzer()
+            {
+                audioOn = false;
+            }
+
+            function analyzeAudio(analyzer, steps)
+            {
+                //create an empty array for the frequency-domain data
+                var data = new Uint8Array(1024);
+                //get the frequency data from the analyzer
+                analyzer.getByteFrequencyData(data);
+
+                var returnData = [];
+
+                //break the samples into the manageable chuncks
+                var bin_size = Math.floor((data.length) / steps);
+                //go through each chuncks and calculate the average
+                for (var i = 0; i < steps; ++i)
+                {
+
+                    var sum = 0;
+
+                    for (var j = 0; j < bin_size; ++j)
+                    {
+                        sum += data[(i * bin_size) + j];
+                    }
+
+                    // Calculate the average frequency of the samples in the bin
+                    var average = sum / bin_size;
+
+                    //var bar_width = cw / num_bars;
+                    var scaled_average = (average / 256) * cH;
+
+                    returnData.push(scaled_average);
+                    //ctx.lineTo(i*bar_width, ch-scaled_average);
+                }
+
+                return returnData;
+
+            }
+
+
+
+            //event handling sutff//
+            $(document).keydown(function (e)
+            {
+
+            });
+
+            $(document).keyup(function (e)
+            {
+
+            });
+
+            $(document).mousedown(function (e)
+            {
+
+            });
+
+            $(document).mouseup(function (e)
+            {
+
+            });
+
+            $(document).mousemove(function (e)
+            {
+
+            });
+
+
+        });
+
+    </script>
+</head>
+
+<body>
+    <canvas id="myCanvas" width="800" height="800"></canvas>
+    <audio id="mySound" src="forTheGirl.mp3" preload="auto" controls> </audio>
+</body>
+</html>

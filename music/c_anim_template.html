@@ -1,0 +1,154 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Canvas Animation Template</title>
+		<style>
+			body {
+				margin: 0;
+				padding: 0;
+				overflow: hidden; /*get rid of the ugly scroll bar*/
+			}
+
+		</style>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<script>
+			// requestAnim shim layer by Paul Irish
+			window.requestAnimFrame = (function() {
+				return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+				function(callback, element) {
+					window.setTimeout(callback, 1000 / 60);
+				};
+			})();
+		</script>
+
+		<script type="text/javascript">
+			//your code goes here
+			$(document).ready(function(e) {
+
+				var $canvas = $('#myCanvas');
+				var context = $canvas.get(0).getContext('2d');
+
+				$canvas.css('background-color', '#222');
+
+				function resizeCanvas() {
+					$canvas.attr('width', $(window).width()).attr('height', $(window).height());
+				}
+
+				// initial resize when the page has loaded
+				resizeCanvas();
+
+				var cW = $canvas.width();
+				var cH = $canvas.height();
+
+				var left, right, up, down;
+
+				var player = {
+					color : "#48A",
+					x : 220,
+					y : 270,
+					width : 32,
+					height : 32,
+					draw : function() {
+						context.save();
+						context.fillStyle = this.color;
+						//context.fillRect(this.x, this.y, this.width, this.height);
+						context.translate(this.x, this.y);
+						context.beginPath();
+						context.arc(0, 0, this.width, 0, Math.PI * 2, false);
+						context.fill();
+						context.restore();
+					}
+				};
+
+				function Circle(x, y, rad) {
+					this.x = x;
+					this.y = y;
+					this.radius = rad;
+					this.draw = draw;
+					function draw() {
+						context.fillStyle = "#fff";
+						context.beginPath();
+						context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+						context.fill();
+					}
+
+				}
+
+				animate();
+				// don't mess
+				function animate() {
+
+					requestAnimFrame(animate);
+					context.clearRect(0, 0, cW, cH);
+					update();
+					draw();
+				}
+
+				function update() {
+					if(right){player.x+=4};
+					if(left){player.x-=4};
+					if(down){player.y+=4};
+					if(up){player.y-=4};
+				}
+
+				function draw() {
+
+					player.draw();
+				}
+
+
+				$(document).keydown(function(e) {
+					console.log(e.keyCode);
+					if(e.keyCode == 39) {
+						right = true;
+					}
+					else if(e.keyCode == 37) {
+						left = true;
+					};
+					if(e.keyCode == 38) {
+						up = true;
+					}
+					else if(e.keyCode == 40) {
+						down = true;
+					}
+				});
+
+				$(document).keyup(function(e) {
+					if(e.keyCode == 39) {
+						right = false;
+					}
+					else if(e.keyCode == 37) {
+						left = false;
+					};
+					if(e.keyCode == 38) {
+						up = false;
+					}
+					else if(e.keyCode == 40) {
+						down = false;
+					}
+				});
+				
+				$(document).mousedown(function(e){
+					
+				});
+				
+				$(document).mouseup(function(e){
+					
+				});
+				
+				$(document).mousemove(function(e){
+					
+				});
+
+
+			});
+
+		</script>
+	</head>
+
+	<body>
+		<canvas id="myCanvas" width="800px" height="800px"></canvas>
+
+	</body>
+</html>

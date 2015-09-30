@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <script type='text/javascript' src='tinycolor.js'></script>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+    <canvas id="myCanvas" width="600" height="600"></canvas>
+    <script>
+
+        var canvas = document.getElementById('myCanvas');
+        var cH = canvas.height;
+        var cW = canvas.width;
+        var ctx = canvas.getContext('2d');
+
+        function spectrumLines(c, x, y, width, height, lineWidth, lines) {
+            var sectionWidth = width / lines;
+            c.save();
+            c.translate(x, y);
+            
+            for (i = 0; i < lines; i++) {
+                c.beginPath();
+                c.fillStyle = spectrumColors(i, lines);
+                var currentX = sectionWidth * i;
+                c.fillRect(currentX, 0, lineWidth, height);
+            }
+
+            c.restore();
+        }
+
+        function spectrumColors(number, steps) {
+            var hueRange = 240
+            var hueStep = hueRange / (steps - 1);
+            var currentHue = hueStep * number;
+            var color = tinycolor('red').spin(currentHue);
+            return color;
+        }
+
+        spectrumLines(ctx, 0, 0, 600, 50, 300, 2);
+        spectrumLines(ctx, 0, 50, 600, 50, 150, 4);
+        spectrumLines(ctx, 0, 100, 600, 50, 100, 6);
+        spectrumLines(ctx, 0, 150, 600, 50, 60, 10);
+        spectrumLines(ctx, 0, 200, 600, 50, 30, 20);
+        spectrumLines(ctx, 0, 250, 600, 50, 15, 40);
+        spectrumLines(ctx, 0, 300, 600, 50, 10, 60);
+        spectrumLines(ctx, 0, 350, 600, 50, 6, 100);
+        spectrumLines(ctx, 0, 400, 600, 50, 1, 600);
+
+    </script>
+</body>
+</html>
