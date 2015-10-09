@@ -20,6 +20,26 @@
     <script type='text/javascript' src='tinycolor.js'></script>
     <script type='text/javascript' src='spectrumColors.js'></script>
     <script>
+        Array.prototype.max = function ()
+        {
+            return Math.max.apply(null, this);
+        };
+        Array.prototype.min = function ()
+        {
+            return Math.min.apply(null, this);
+        };
+        Array.prototype.ratio = function (index)
+        {
+            var val = this[index];
+            var min = this.min();
+            var max = this.max();
+            if (val && max !=min)
+            {
+                return ((val - min) / (max - min));
+            }
+        }
+    </script>
+    <script>
         // requestAnim shim layer by Paul Irish
         window.requestAnimFrame = (function ()
         {
@@ -56,79 +76,68 @@
 
             var cW = $canvas.width();
             var cH = $canvas.height();
+            var cData = context.getImageData(0, 0, cW, cH);
 
             var cSpec;
             var cTime;
-            var steps = 5;
-            var levelsArray = [];
-            var timeArray = [];
-
-            for (i = 0; i < steps; i++)
-            {
-                levelsArray.push(new Array);
-                timeArray.push(new Array);
-            }
+            const steps = 5;
 
             var left, right, up, down, x;
-
+            
             animate();
 
             function animate()
             {
 
                 requestAnimFrame(animate);
-                update();
-                //draw();
+                if (audioOn)
+                {
+                    context.putImageData(cData, 0, 0);
+                    var data = update();
+                    draw(data);
+                }
             }
 
             function update()
             {
-
-                if (audioOn)
+                var yArray = new Array(steps);
+                cTime = document.getElementById("mySound").currentTime;
+                cSpec = analyzeAudio(audioAnalyzer, steps);
+                var x = cW / (mySound.duration) * cTime;
+                //if (cSpec[0] >= 300) { console.log(3) } else if (cSpec[0] >= 200) { console.log(2) } else if (cSpec[0] >= 100) { console.log(1) } else { console.log(0) };
+                for (i = 0; i < steps; i++)
                 {
-                    cTime = document.getElementById("mySound").currentTime;
-                    cSpec = analyzeAudio(audioAnalyzer, steps);
-
-                    for (i = 0; i < cSpec.length; i++)
-                    {
-                        var x = cW / (mySound.duration) * cTime;
-                        var y = cH - cSpec[i];
-                        levelsArray[i].push(y);
-                        timeArray[i].push(x);
-
-                        context.clearRect(x + 1, 0, cW, cH);
-                        if (i > 0)
-                        {
-                            var gradient = context.createLinearGradient(x, levelsArray[i][levelsArray[i].length - 1], x, levelsArray[i - 1][levelsArray[i - 1].length - 1]);
-                            gradient.addColorStop(0, spectrumColors(steps - (i + 1), steps));
-                            gradient.addColorStop(1, spectrumColors(steps - i, steps));
-                            context.fillStyle = gradient;
-                            context.beginPath();
-                            context.moveTo(timeArray[0][timeArray[0].length - 2], levelsArray[i - 1][levelsArray[i - 1].length - 2])
-                            context.lineTo(timeArray[0][timeArray[0].length - 2], levelsArray[i][levelsArray[i].length - 2]);
-                            context.strokeStyle = spectrumColors(steps - (i + 1), steps);
-
-                            context.lineTo(x, levelsArray[i][levelsArray[i].length - 1]);
-                            context.lineTo(x, levelsArray[i - 1][levelsArray[i - 1].length - 1]);
-                            context.stroke();
-                            context.fill();
-                        }
-                        else
-                        {
-                            context.beginPath();
-                            context.moveTo(timeArray[0][timeArray[0].length - 2], levelsArray[i][levelsArray[i].length - 2]);
-                            context.strokeStyle = spectrumColors(steps - (i + 1), steps);
-
-                            context.lineTo(x, levelsArray[i][levelsArray[i].length - 1]);
-                            context.stroke();
-                        }
-                        
-                    }
+                    yArray[i] = (cH - cSpec[i]);
                 }
+                return [x, yArray];
             }
 
-            function draw()
+            function draw(data)
             {
+                x = data[0];
+                yArray = data[1];
+                var yMin = yArray.min();
+                var yMax = yArray.max();
+                if (yMin != yMax)
+                {
+                    var lineGradient = context.createLinearGradient(x, yMin, x, yMax);
+
+                    for (var i = 0; i < steps; i++)
+                    {
+                        lineGradient.addColorStop(yArray.ratio(i), spectrumColors(i, steps));
+                    }
+                    context.strokeStyle = lineGradient;
+                    context.beginPath();
+                    context.moveTo(x, yMin);
+                    context.lineTo(x, yMax);
+                    context.stroke();
+                    context.closePath();
+                    cData = context.getImageData(0, 0, cW, cH);
+                    for (var i = 0; i < steps - 1; i++)
+                    {
+
+                    }
+                }
             }
 
 
